@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 // ─── floating cards animation component ───────────────────────────────────
@@ -128,6 +128,7 @@ export default function Landing() {
     const [scrollY, setScrollY] = useState(0);
     const [ctaEmail, setCtaEmail] = useState('');
     const [theme, setTheme] = useState(localStorage.getItem('shedula_theme') || 'System');
+    const navigate = useNavigate();
 
     // Scroll listener for sticky nav and parallax effects
     useEffect(() => {
@@ -357,14 +358,18 @@ export default function Landing() {
             <section style={{ padding: '140px 60px', backgroundColor: 'var(--bg-main)' }}>
                 <div className="fade-in-up" style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: 'var(--bg-card)', padding: '80px 60px', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                     <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: 'white', fontSize: '3.5rem', margin: '0 auto 32px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 15px 30px rgba(59,130,246,0.3)' }}>👨‍💻</div>
-                    <h2 style={{ fontSize: '2.5rem', color: 'var(--text-main)', margin: '0 0 12px 0', fontWeight: '900', letterSpacing: '-1px' }}>Built by Me</h2>
-                    <p style={{ fontSize: '1.2rem', color: '#3b82f6', margin: '0 0 32px 0', fontWeight: '800' }}>Full-Stack Software Engineer & AI Enthusiast</p>
+
+                    {/* Updated Name Here */}
+                    <h2 style={{ fontSize: '2.5rem', color: 'var(--text-main)', margin: '0 0 12px 0', fontWeight: '900', letterSpacing: '-1px' }}>Built by Amit Beloshe</h2>
+                    <p style={{ fontSize: '1.2rem', color: '#3b82f6', margin: '0 0 32px 0', fontWeight: '800' }}>Full-Stack Software Developer</p>
+
                     <p style={{ color: 'var(--text-sub)', fontSize: '1.15rem', lineHeight: '1.8', marginBottom: '40px', fontWeight: '500' }}>
                         I built <strong>Shedula</strong> to solve the chaos of modern project management. By combining a robust <strong>Java Spring Boot</strong> backend, a lightning-fast <strong>React</strong> frontend, and integrating <strong>Google's Gemini AI</strong>, I created a platform that doesn't just track tasks—it helps you generate, execute, and optimize them.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        <a href="https://linkedin.com" target="_blank" rel="noreferrer" style={{ padding: '16px 36px', backgroundColor: '#0a66c2', color: 'white', textDecoration: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 4px 12px rgba(10, 102, 194, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-4px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Connect on LinkedIn</a>
-                        <a href="https://github.com" target="_blank" rel="noreferrer" style={{ padding: '16px 36px', backgroundColor: '#24292e', color: 'white', textDecoration: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 4px 12px rgba(36, 41, 46, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-4px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>View on GitHub</a>
+                        {/* Updated LinkedIn and GitHub Links Here */}
+                        <a href="https://linkedin.com/in/amit-beloshe-29162133b" target="_blank" rel="noreferrer" style={{ padding: '16px 36px', backgroundColor: '#0a66c2', color: 'white', textDecoration: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 4px 12px rgba(10, 102, 194, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-4px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Connect on LinkedIn</a>
+                        <a href="https://github.com/amti3109" target="_blank" rel="noreferrer" style={{ padding: '16px 36px', backgroundColor: '#24292e', color: 'white', textDecoration: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 4px 12px rgba(36, 41, 46, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-4px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>View on GitHub</a>
                     </div>
                 </div>
             </section>
@@ -416,7 +421,7 @@ export default function Landing() {
                         </div>
                     </div>
                     <div style={{ paddingTop: '40px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                        <p style={{ margin: 0, color: 'var(--text-sub)', fontSize: '0.95rem', fontWeight: '500' }}>© 2026 Shedula. All rights reserved. Built with 💙 for developers.</p>
+                        <p style={{ margin: 0, color: 'var(--text-sub)', fontSize: '0.95rem', fontWeight: '500' }}>© 2026 Shedula. Designed and Built by Amit Beloshe.</p>
                     </div>
                 </div>
             </footer>
