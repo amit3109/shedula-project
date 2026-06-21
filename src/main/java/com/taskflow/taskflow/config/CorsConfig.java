@@ -18,7 +18,8 @@ public class CorsConfig {
 
         // The VIP List
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5174");
+        config.addAllowedOrigin("http://localhost:5174"); // Allows your local laptop
+        config.addAllowedOrigin("https://shedula-project-1.onrender.com"); // Allows your live website
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
