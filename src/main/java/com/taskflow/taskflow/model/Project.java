@@ -24,7 +24,7 @@ public class Project {
 
     @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workspace_id", nullable = false)
+    @JoinColumn(name = "workspace_id", nullable = true)
     private Workspace workspace;
     // Inside Project.java
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
