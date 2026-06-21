@@ -185,7 +185,7 @@ export default function ProjectBoard() {
     // 🚀 NEW: MULTIPLAYER WEBSOCKET CONNECTION
     useEffect(() => {
         // Connect to the Spring Boot /ws endpoint
-        const socket = new SockJS('http://localhost:8082/ws');
+        const socket = new SockJS('https://shedula-project.onrender.com/ws');
         const stompClient = new Client({
             webSocketFactory: () => socket,
             onConnect: () => {
