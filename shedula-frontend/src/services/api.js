@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // Make sure this matches your Java backend port!
-    baseURL: 'http://localhost:8082',
+    // Pointing to your live Render backend!
+    baseURL: 'https://shedula-project.onrender.com',
 });
 
 // 🚀 THE FIX: This interceptor acts like a bouncer. 
