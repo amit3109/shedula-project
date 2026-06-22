@@ -108,7 +108,7 @@ export default function CalendarView() {
     const fetchAllTasks = async () => {
         setIsLoading(true);
         try {
-            const projectRes = await api.get('/api/projects/workspace/1');
+            const projectRes = await api.get('/api/projects');
             const projects = projectRes.data;
 
             let allTasks = [];
