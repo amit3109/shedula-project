@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
-// ─── Avatar Component ──────────────────────────────────────────────────────
+// ─── STATUS METADATA ────────────────────────────────────────────────────────
+const STATUS_META = {
+    TODO: { label: 'To Do', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)' },
+    IN_PROGRESS: { label: 'In Progress', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+    DONE: { label: 'Done', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+};
+
+// ─── AVATAR COMPONENT ──────────────────────────────────────────────────────
 function Avatar({ name = '', size = 40 }) {
     const initials = name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
     const colors = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'];
@@ -29,6 +36,10 @@ export default function Inbox() {
 
     const [userProfile, setUserProfile] = useState({ name: displayName, email: rawEmail });
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+    // Auto-Capitalize First Name
+    const rawFirstName = userProfile.name.split(' ')[0];
+    const firstName = rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1);
 
     // ── Core States ──
     const [isLoading, setIsLoading] = useState(true);
@@ -96,13 +107,22 @@ export default function Inbox() {
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            // ONE single trip to the cloud!
+            // 🚀 THE FIX: One single trip to the global tasks endpoint!
             const taskRes = await api.get('/api/tasks');
 
+            const safeUserName = (userProfile.name || '').trim().toLowerCase();
+
             // Filter: Only tasks assigned to ME, and NOT marked as DONE
-            const myActiveTasks = taskRes.data
-                .filter(t => t.assignedTo === userProfile.name && t.status !== 'DONE')
-                .map(t => ({ ...t, projectName: t.project ? t.project.name : 'Unknown' }));
+            const myActiveTasks = taskRes.data.filter(t => {
+                const assignedName = (t.assignedTo || '').trim().toLowerCase();
+                const isAssignedToMe = assignedName === safeUserName;
+                const isNotDone = t.status !== 'DONE';
+
+                return isAssignedToMe && isNotDone;
+            }).map(t => ({
+                ...t,
+                projectName: t.project ? t.project.name : 'Unknown'
+            }));
 
             // Sort tasks: Urgent/High first, then by nearest due date
             myActiveTasks.sort((a, b) => {
@@ -116,6 +136,7 @@ export default function Inbox() {
 
             setMyTasks(myActiveTasks);
         } catch (err) {
+            console.error("Inbox fetch error:", err);
             toast('Failed to load inbox data.', 'error');
         } finally {
             setTimeout(() => setIsLoading(false), 400);
@@ -143,6 +164,13 @@ export default function Inbox() {
         }
     };
 
+    function getGreeting() {
+        const h = new Date().getHours();
+        if (h < 12) return 'morning';
+        if (h < 17) return 'afternoon';
+        return 'evening';
+    }
+
     if (!isAuthenticated) return null;
 
     return (
@@ -153,6 +181,8 @@ export default function Inbox() {
                 .dropdown-pop { animation: iosPop 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards; transform-origin: bottom left; }
                 @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 .fade-in-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+                .skeleton-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
                 
                 /* Custom Checkbox Animation */
                 .task-row { transition: all 0.2s ease; border-bottom: 1px solid var(--border-color); }
@@ -195,6 +225,27 @@ export default function Inbox() {
                         </div>
                         <span style={{ fontSize: '1rem', color: 'var(--text-sub)' }}>⋮</span>
                     </div>
+
+                    {profileMenuOpen && (
+                        <>
+                            <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(false); }} />
+                            <div className="dropdown-pop" style={{ position: 'absolute', bottom: 'calc(100% + 12px)', left: 0, width: '280px', backgroundColor: 'var(--bg-card)', borderRadius: '20px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.3)', zIndex: 50, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ padding: '24px', textAlign: 'center', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                    <Avatar name={userProfile.name} size={72} />
+                                    <div>
+                                        <div style={{ fontWeight: 900, color: 'var(--text-main)', fontSize: '1.1rem' }}>{userProfile.name}</div>
+                                        <div style={{ color: 'var(--text-sub)', fontSize: '0.85rem' }}>{userProfile.email}</div>
+                                    </div>
+                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/settings'); }} style={{ marginTop: '8px', padding: '8px 20px', borderRadius: '99px', border: '1px solid var(--border-color)', backgroundColor: 'var(--input-bg)', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.target.style.backgroundColor = '#3b82f6'} onMouseLeave={e => e.target.style.backgroundColor = 'var(--input-bg)'}>Manage Account</button>
+                                </div>
+                                <div style={{ padding: '8px' }}>
+                                    <div onClick={() => { handleLogout(); }} style={{ padding: '12px 16px', fontSize: '0.9rem', color: '#ef4444', cursor: 'pointer', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'center', fontWeight: 700 }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <span>🚪</span> Sign Out
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </aside>
 
@@ -215,7 +266,7 @@ export default function Inbox() {
                     {isLoading ? (
                         <div className="fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: '16px', animationDelay: '100ms' }}>
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} style={{ height: '64px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color)', opacity: 1 - (i * 0.15), animation: 'pulse 2s infinite' }} />
+                                <div key={i} className="skeleton-pulse" style={{ height: '64px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color)', opacity: 1 - (i * 0.15) }} />
                             ))}
                         </div>
                     ) : myTasks.length === 0 ? (
