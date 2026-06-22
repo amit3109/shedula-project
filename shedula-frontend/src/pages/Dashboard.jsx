@@ -238,35 +238,28 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/api/projects'); // <-- FIXED: Get all projects!
-            const fetchedProjects = response.data;
-            setProjects(fetchedProjects);
+            // TRIP 1: Grab all projects instantly
+            const projRes = await api.get('/api/projects');
+            setProjects(projRes.data);
 
-            let totalPending = 0;
-            let tasksCollection = [];
+            // TRIP 2: Grab all tasks globally in one single trip
+            const taskRes = await api.get('/api/tasks');
 
-            for (const project of fetchedProjects) {
-                try {
-                    const tasksResponse = await api.get(`/api/tasks/project/${project.id}`);
-                    const projectTasks = (tasksResponse.data || []).map(task => ({
-                        ...task,
-                        projectId: project.id,
-                        projectName: project.name
-                    }));
+            // Format them for the dashboard
+            const tasksCollection = taskRes.data.map(task => ({
+                ...task,
+                projectId: task.project ? task.project.id : null,
+                projectName: task.project ? task.project.name : 'Unknown'
+            }));
 
-                    tasksCollection = [...tasksCollection, ...projectTasks];
-                    totalPending += projectTasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
-                } catch (err) {
-                    console.warn(`Failed to fetch tasks for project ${project.id}`);
-                }
-            }
+            const totalPending = tasksCollection.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
 
             setPendingTaskCount(totalPending);
             setAllTasks(tasksCollection);
             setRecentActivity([...tasksCollection].sort((a, b) => b.id - a.id).slice(0, 30));
 
         } catch (err) {
-            toast('Failed to load projects', 'error');
+            toast('Failed to load dashboard data', 'error');
         } finally {
             setLoading(false);
         }
