@@ -104,25 +104,37 @@ export default function Inbox() {
     };
 
     // ── FETCH PERSONAL INBOX TASKS (FAST METHOD) ──
+    // ── FETCH PERSONAL INBOX TASKS (FAST PROMISE.ALL METHOD) ──
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            // 🚀 THE FIX: One single trip to the global tasks endpoint!
-            const taskRes = await api.get('/api/tasks');
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects/workspace/1');
+            const fetchedProjects = projRes.data;
+
+            // 2. Fetch tasks for EVERY project simultaneously
+            const taskPromises = fetchedProjects.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
+            );
+
+            // Wait for all to finish, then flatten into one array
+            const allTasksArrays = await Promise.all(taskPromises);
+            const allTasks = allTasksArrays.flat();
 
             const safeUserName = (userProfile.name || '').trim().toLowerCase();
 
             // Filter: Only tasks assigned to ME, and NOT marked as DONE
-            const myActiveTasks = taskRes.data.filter(t => {
+            const myActiveTasks = allTasks.filter(t => {
                 const assignedName = (t.assignedTo || '').trim().toLowerCase();
                 const isAssignedToMe = assignedName === safeUserName;
                 const isNotDone = t.status !== 'DONE';
-
                 return isAssignedToMe && isNotDone;
-            }).map(t => ({
-                ...t,
-                projectName: t.project ? t.project.name : 'Unknown'
-            }));
+            });
 
             // Sort tasks: Urgent/High first, then by nearest due date
             myActiveTasks.sort((a, b) => {

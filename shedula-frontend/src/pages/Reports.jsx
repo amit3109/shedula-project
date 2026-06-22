@@ -107,23 +107,29 @@ export default function Reports() {
     };
 
     // ── Fetch Real Data ──
+    // ── FETCH REAL DATA FOR REPORTS (FAST PROMISE.ALL METHOD) ──
     const fetchAnalyticsData = async () => {
         setIsLoading(true);
         try {
-            const projectRes = await api.get('/api/projects');  
+            // 1. Get all projects
+            const projectRes = await api.get('/api/projects/workspace/1');
             const fetchedProjects = projectRes.data;
             setProjects(fetchedProjects);
 
-            let tasksCollection = [];
-            for (const project of fetchedProjects) {
-                try {
-                    const taskRes = await api.get(`/api/tasks/project/${project.id}`);
-                    const tasksWithProject = taskRes.data.map(t => ({ ...t, projectName: project.name, projectId: project.id }));
-                    tasksCollection = [...tasksCollection, ...tasksWithProject];
-                } catch (err) {
-                    console.warn(`Could not fetch tasks for project ${project.id}`);
-                }
-            }
+            // 2. Fetch tasks for EVERY project simultaneously
+            const taskPromises = fetchedProjects.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(t => ({
+                        ...t,
+                        projectName: project.name,
+                        projectId: project.id
+                    })))
+                    .catch(() => [])
+            );
+
+            const allTasksArrays = await Promise.all(taskPromises);
+            const tasksCollection = allTasksArrays.flat();
+
             setAllTasks(tasksCollection);
         } catch (err) {
             toast('Failed to load analytics data', 'error');
@@ -131,7 +137,6 @@ export default function Reports() {
             setTimeout(() => setIsLoading(false), 600);
         }
     };
-
     useEffect(() => {
         if (isAuthenticated) fetchAnalyticsData();
     }, [isAuthenticated]);

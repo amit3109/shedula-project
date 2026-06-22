@@ -105,28 +105,29 @@ export default function CalendarView() {
         navigate('/login');
     };
 
+    // ── FETCH ALL TASKS FOR CALENDAR (FAST PROMISE.ALL METHOD) ──
     const fetchAllTasks = async () => {
         setIsLoading(true);
         try {
-            const projectRes = await api.get('/api/projects');
-            const projects = projectRes.data;
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects/workspace/1');
+            const projects = projRes.data;
 
-            let allTasks = [];
-            for (const project of projects) {
-                try {
-                    const taskRes = await api.get(`/api/tasks/project/${project.id}`);
-                    const tasksWithProjectName = taskRes.data.map(task => ({
+            // 2. Fetch tasks for EVERY project simultaneously
+            const taskPromises = projects.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
                         ...task,
                         projectName: project.name
-                    }));
-                    allTasks = [...allTasks, ...tasksWithProjectName];
-                } catch (err) {
-                    console.warn(`Failed fetching tasks for project ${project.id}`);
-                }
-            }
+                    })))
+                    .catch(() => [])
+            );
+
+            const allTasksArrays = await Promise.all(taskPromises);
+            const allTasks = allTasksArrays.flat();
 
             const formattedEvents = allTasks
-                .filter(task => task.dueDate)
+                .filter(task => task.dueDate) // Only map tasks that have a deadline
                 .map(task => {
                     const shortProjectName = task.projectName.length > 15 ? task.projectName.substring(0, 15) + '...' : task.projectName;
                     const cleanTaskName = task.title.replace('✨ AI: ', '').replace('✨ ', '').trim();
