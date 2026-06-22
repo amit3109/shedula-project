@@ -2,10 +2,11 @@ package com.taskflow.taskflow.controller;
 
 import com.taskflow.taskflow.model.Project;
 import com.taskflow.taskflow.service.ProjectService;
-import com.taskflow.taskflow.service.PdfService; // 🚀 NEW: Imported the PdfService
+import com.taskflow.taskflow.service.PdfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -14,13 +15,18 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
-    // 🚀 NEW: Autowired the PdfService so Java knows what it is!
     @Autowired
     private PdfService pdfService;
 
     @PostMapping
     public ResponseEntity<Project> createProject(@RequestBody Project project) {
         return ResponseEntity.ok(projectService.createProject(project));
+    }
+
+    // 🚀 NEW: This answers the exact question React is asking!
+    @GetMapping
+    public ResponseEntity<List<Project>> getAllProjects() {
+        return ResponseEntity.ok(projectService.getAllProjects());
     }
 
     @GetMapping("/workspace/{workspaceId}")
@@ -36,10 +42,7 @@ public class ProjectController {
 
     @GetMapping("/{projectId}/report")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long projectId) {
-        // Now this line will work perfectly!
-        byte[] pdfBytes = pdfService.generateProjectReport("Project #" + projectId, 10, 5); // Added the total and done
-                                                                                            // numbers from earlier!
-
+        byte[] pdfBytes = pdfService.generateProjectReport("Project #" + projectId, 10, 5);
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=report.pdf")
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
