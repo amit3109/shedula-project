@@ -238,7 +238,7 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/api/projects/workspace/1');
+            const response = await api.get('/api/projects'); // <-- FIXED: Get all projects!
             const fetchedProjects = response.data;
             setProjects(fetchedProjects);
 
