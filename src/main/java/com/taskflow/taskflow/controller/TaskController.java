@@ -6,7 +6,7 @@ import com.taskflow.taskflow.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate; // 🚀 NEW IMPORT
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,7 +23,6 @@ public class TaskController {
     @Autowired
     private TaskRepository taskRepository;
 
-    // 🚀 NEW: This is the Megaphone that broadcasts updates to React!
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
@@ -35,6 +34,12 @@ public class TaskController {
         messagingTemplate.convertAndSend("/topic/project/" + projectId, createdTask);
 
         return ResponseEntity.ok(createdTask);
+    }
+
+    // 🚀 NEW: The endpoint the Calendar and Inbox use to get ALL tasks
+    @GetMapping
+    public ResponseEntity<List<Task>> getAllTasks() {
+        return ResponseEntity.ok(taskService.getAllTasks());
     }
 
     @GetMapping("/project/{projectId}")
@@ -55,7 +60,6 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }
 
-    // DELETE: /api/tasks/1
     @DeleteMapping("/{taskId}")
     public ResponseEntity<Map<String, String>> deleteTask(@PathVariable Long taskId) {
         // Find the task first so we know which project channel to broadcast to
@@ -72,24 +76,19 @@ public class TaskController {
         return ResponseEntity.ok(Map.of("message", "Task deleted successfully"));
     }
 
-    // 📝 EDIT TASK DETAILS
     @PutMapping("/{taskId}")
     public ResponseEntity<?> updateTaskDetails(@PathVariable Long taskId, @RequestBody Task updatedDetails) {
         try {
-            // 1. Find the exact task in the database
             Task existingTask = taskRepository.findById(taskId)
                     .orElseThrow(() -> new RuntimeException("Task not found!"));
 
-            // 2. Update all the specific details
             existingTask.setDescription(updatedDetails.getDescription());
             existingTask.setDueDate(updatedDetails.getDueDate());
             existingTask.setPriority(updatedDetails.getPriority());
             existingTask.setAssignedTo(updatedDetails.getAssignedTo());
 
-            // 3. Save it back to MySQL
             Task savedTask = taskRepository.save(existingTask);
 
-            // 📢 Broadcast the edited details to everyone viewing the board
             if (savedTask.getProject() != null) {
                 messagingTemplate.convertAndSend("/topic/project/" + savedTask.getProject().getId(), savedTask);
             }

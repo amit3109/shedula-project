@@ -66,4 +66,9 @@ public class TaskService {
         existingTask.setAssignedTo(updatedTask.getAssignedTo());
         return taskRepository.save(existingTask);
     }
+
+    // 🚀 NEW: This grabs ALL tasks globally for the Calendar and Inbox!
+    public List<Task> getAllTasks() {
+        return taskRepository.findAll();
+    }
 }
