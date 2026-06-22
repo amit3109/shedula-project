@@ -92,30 +92,20 @@ export default function Inbox() {
         navigate('/login');
     };
 
-    // ── FETCH PERSONAL INBOX TASKS ──
+    // ── FETCH PERSONAL INBOX TASKS (FAST METHOD) ──
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            const projectRes = await api.get('/api/projects/workspace/1');
-            const projects = projectRes.data;
+            // ONE single trip to the cloud!
+            const taskRes = await api.get('/api/tasks');
 
-            let userTasks = [];
-            for (const project of projects) {
-                try {
-                    const taskRes = await api.get(`/api/tasks/project/${project.id}`);
-                    // Filter: Only tasks assigned to ME, and NOT marked as DONE
-                    const myActiveTasks = taskRes.data
-                        .filter(t => t.assignedTo === userProfile.name && t.status !== 'DONE')
-                        .map(t => ({ ...t, projectName: project.name }));
-
-                    userTasks = [...userTasks, ...myActiveTasks];
-                } catch (err) {
-                    console.warn(`Could not fetch tasks for project ${project.id}`);
-                }
-            }
+            // Filter: Only tasks assigned to ME, and NOT marked as DONE
+            const myActiveTasks = taskRes.data
+                .filter(t => t.assignedTo === userProfile.name && t.status !== 'DONE')
+                .map(t => ({ ...t, projectName: t.project ? t.project.name : 'Unknown' }));
 
             // Sort tasks: Urgent/High first, then by nearest due date
-            userTasks.sort((a, b) => {
+            myActiveTasks.sort((a, b) => {
                 const priorityWeight = { 'Urgent': 3, 'High': 2, 'Medium': 1, 'Low': 0 };
                 const wA = priorityWeight[a.priority] || 1;
                 const wB = priorityWeight[b.priority] || 1;
@@ -124,7 +114,7 @@ export default function Inbox() {
                 return 0;
             });
 
-            setMyTasks(userTasks);
+            setMyTasks(myActiveTasks);
         } catch (err) {
             toast('Failed to load inbox data.', 'error');
         } finally {
@@ -205,8 +195,6 @@ export default function Inbox() {
                         </div>
                         <span style={{ fontSize: '1rem', color: 'var(--text-sub)' }}>⋮</span>
                     </div>
-
-                    {/* Profile Dropdown Logic (omitted for brevity, same as Settings) */}
                 </div>
             </aside>
 
