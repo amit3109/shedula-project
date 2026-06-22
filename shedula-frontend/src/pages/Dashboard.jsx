@@ -278,7 +278,7 @@ export default function Dashboard() {
         e.preventDefault();
         if (!newProjectName.trim()) { toast('Enter a project name', 'error'); return; }
         try {
-            await api.post('/api/projects', { name: newProjectName, workspace: { id: 1 } });
+            await api.post('/api/projects', { name: newProjectName }); // <-- FIXED!
             fetchProjects();
             setShowCreateModal(false);
             setNewProjectName('');
@@ -309,7 +309,7 @@ export default function Dashboard() {
 
     const handleDuplicateProject = async (project) => {
         try {
-            await api.post('/api/projects', { name: `${project.name} (copy)`, workspace: { id: 1 } });
+            await api.post('/api/projects', { name: `${project.name} (copy)` }); // <-- FIXED!
             fetchProjects();
             toast(`Duplicated "${project.name}"`);
         } catch (err) { toast('Failed to duplicate', 'error'); }
