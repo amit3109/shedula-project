@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
@@ -103,40 +103,17 @@ export default function Inbox() {
         navigate('/login');
     };
 
-    // ── FETCH PERSONAL INBOX TASKS (FAST METHOD) ──
-    // ── FETCH PERSONAL INBOX TASKS (FAST PROMISE.ALL METHOD) ──
+    // ── FETCH INBOX TASKS ──
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            // 1. Get all projects
-            const projRes = await api.get('/api/projects/workspace/1');
-            const fetchedProjects = projRes.data;
+            const taskRes = await api.get('/api/tasks');
 
-            // 2. Fetch tasks for EVERY project simultaneously
-            const taskPromises = fetchedProjects.map(project =>
-                api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => res.data.map(task => ({
-                        ...task,
-                        projectName: project.name
-                    })))
-                    .catch(() => [])
-            );
+            // FIX: Removed strict name matching. Shows all active tasks!
+            const myActiveTasks = taskRes.data
+                .filter(t => t.status !== 'DONE')
+                .map(t => ({ ...t, projectName: t.project ? t.project.name : 'Unknown' }));
 
-            // Wait for all to finish, then flatten into one array
-            const allTasksArrays = await Promise.all(taskPromises);
-            const allTasks = allTasksArrays.flat();
-
-            const safeUserName = (userProfile.name || '').trim().toLowerCase();
-
-            // Filter: Only tasks assigned to ME, and NOT marked as DONE
-            const myActiveTasks = allTasks.filter(t => {
-                const assignedName = (t.assignedTo || '').trim().toLowerCase();
-                const isAssignedToMe = assignedName === safeUserName;
-                const isNotDone = t.status !== 'DONE';
-                return isAssignedToMe && isNotDone;
-            });
-
-            // Sort tasks: Urgent/High first, then by nearest due date
             myActiveTasks.sort((a, b) => {
                 const priorityWeight = { 'Urgent': 3, 'High': 2, 'Medium': 1, 'Low': 0 };
                 const wA = priorityWeight[a.priority] || 1;
@@ -165,7 +142,6 @@ export default function Inbox() {
         try {
             await api.patch(`/api/tasks/${taskId}/status`, { status: 'DONE' });
             toast("Task completed! Great job.");
-            // Remove it from the local UI instantly for a snappy feel
             setTimeout(() => {
                 setMyTasks(prev => prev.filter(t => t.id !== taskId));
                 setCompletingTaskId(null);
@@ -175,13 +151,6 @@ export default function Inbox() {
             setCompletingTaskId(null);
         }
     };
-
-    function getGreeting() {
-        const h = new Date().getHours();
-        if (h < 12) return 'morning';
-        if (h < 17) return 'afternoon';
-        return 'evening';
-    }
 
     if (!isAuthenticated) return null;
 

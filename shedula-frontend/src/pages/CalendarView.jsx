@@ -109,11 +109,10 @@ export default function CalendarView() {
     const fetchAllTasks = async () => {
         setIsLoading(true);
         try {
-            // 1. Get all projects
-            const projRes = await api.get('/api/projects/workspace/1');
+            // FIX: Get ALL projects, no workspace blindfold
+            const projRes = await api.get('/api/projects');
             const projects = projRes.data;
 
-            // 2. Fetch tasks for EVERY project simultaneously
             const taskPromises = projects.map(project =>
                 api.get(`/api/tasks/project/${project.id}`)
                     .then(res => res.data.map(task => ({

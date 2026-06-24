@@ -238,19 +238,24 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            // TRIP 1: Grab all projects instantly
+            // FIX: Get ALL projects, no workspace blindfold
             const projRes = await api.get('/api/projects');
-            setProjects(projRes.data);
+            const projectsData = projRes.data;
+            setProjects(projectsData);
 
-            // TRIP 2: Grab all tasks globally in one single trip
-            const taskRes = await api.get('/api/tasks');
+            // Fetch tasks for every project and attach the IDs
+            const taskPromises = projectsData.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
+            );
 
-            // Format them for the dashboard
-            const tasksCollection = taskRes.data.map(task => ({
-                ...task,
-                projectId: task.project ? task.project.id : null,
-                projectName: task.project ? task.project.name : 'Unknown'
-            }));
+            const allTasksArrays = await Promise.all(taskPromises);
+            const tasksCollection = allTasksArrays.flat();
 
             const totalPending = tasksCollection.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
 
@@ -263,20 +268,6 @@ export default function Dashboard() {
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => { if (isAuthenticated) fetchProjects(); }, [isAuthenticated]);
-
-    const handleCreateProject = async (e) => {
-        e.preventDefault();
-        if (!newProjectName.trim()) { toast('Enter a project name', 'error'); return; }
-        try {
-            await api.post('/api/projects', { name: newProjectName }); // <-- FIXED!
-            fetchProjects();
-            setShowCreateModal(false);
-            setNewProjectName('');
-            toast(`Project "${newProjectName}" created!`);
-        } catch (err) { toast('Failed to create project', 'error'); }
     };
 
     const handleEditProject = async (e) => {
