@@ -238,20 +238,25 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            // FIX: Get ALL projects, no workspace blindfold
-            const projRes = await api.get('/api/projects');
-            const projectsData = projRes.data;
-            setProjects(projectsData);
+            // FIX 1: Target the workspace specifically
+            const projRes = await api.get('/api/projects/workspace/1');
+            const fetchedProjects = projRes.data;
+            setProjects(fetchedProjects);
 
-            // Fetch tasks for every project and attach the IDs
-            const taskPromises = projectsData.map(project =>
+            // FIX 2: Fetch tasks for EVERY project simultaneously (Bypass missing global endpoint)
+            const taskPromises = fetchedProjects.map(project =>
                 api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => res.data.map(task => ({
-                        ...task,
-                        projectId: project.id,
-                        projectName: project.name
-                    })))
-                    .catch(() => [])
+                    .then(res => {
+                        return res.data.map(task => ({
+                            ...task,
+                            projectId: project.id,
+                            projectName: project.name
+                        }));
+                    })
+                    .catch(err => {
+                        console.warn(`No tasks found for project ${project.id}`);
+                        return [];
+                    })
             );
 
             const allTasksArrays = await Promise.all(taskPromises);
@@ -261,9 +266,11 @@ export default function Dashboard() {
 
             setPendingTaskCount(totalPending);
             setAllTasks(tasksCollection);
+
             setRecentActivity([...tasksCollection].sort((a, b) => b.id - a.id).slice(0, 30));
 
         } catch (err) {
+            console.error(err);
             toast('Failed to load dashboard data', 'error');
         } finally {
             setLoading(false);
