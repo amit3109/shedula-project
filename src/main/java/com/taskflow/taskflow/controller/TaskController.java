@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*") // 🚀 Changed from localhost to *
 public class TaskController {
 
     @Autowired

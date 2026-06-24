@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*") // 🚀 Changed from localhost to *
 public class AiController {
 
     @Autowired
