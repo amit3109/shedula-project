@@ -21,8 +21,9 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*") // 🚀 THE FIX: Allows your Render frontend to connect!
 public class UserController {
+    // ... rest of your code stays exactly the same
 
     @Autowired
     private UserService userService;

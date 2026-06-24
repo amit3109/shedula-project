@@ -10,7 +10,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
+@CrossOrigin(origins = "*") // 🚀 THE FIX: Added this so your Dashboard can fetch projects!
 public class ProjectController {
+    // ... rest of your code stays exactly the same
 
     @Autowired
     private ProjectService projectService;
