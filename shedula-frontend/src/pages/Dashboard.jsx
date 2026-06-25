@@ -238,25 +238,20 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            // FIX 1: Target the workspace specifically
-            const projRes = await api.get('/api/projects/workspace/1');
-            const fetchedProjects = projRes.data;
-            setProjects(fetchedProjects);
+            // FIX: Get ALL projects, no workspace blindfold
+            const projRes = await api.get('/api/projects');
+            const projectsData = projRes.data;
+            setProjects(projectsData);
 
-            // FIX 2: Fetch tasks for EVERY project simultaneously (Bypass missing global endpoint)
-            const taskPromises = fetchedProjects.map(project =>
+            // Fetch tasks for every project and attach the IDs
+            const taskPromises = projectsData.map(project =>
                 api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => {
-                        return res.data.map(task => ({
-                            ...task,
-                            projectId: project.id,
-                            projectName: project.name
-                        }));
-                    })
-                    .catch(err => {
-                        console.warn(`No tasks found for project ${project.id}`);
-                        return [];
-                    })
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
             );
 
             const allTasksArrays = await Promise.all(taskPromises);
@@ -266,15 +261,28 @@ export default function Dashboard() {
 
             setPendingTaskCount(totalPending);
             setAllTasks(tasksCollection);
-
             setRecentActivity([...tasksCollection].sort((a, b) => b.id - a.id).slice(0, 30));
 
         } catch (err) {
-            console.error(err);
             toast('Failed to load dashboard data', 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => { if (isAuthenticated) fetchProjects(); }, [isAuthenticated]);
+
+    // 🚀 RESTORED MISSING FUNCTION
+    const handleCreateProject = async (e) => {
+        e.preventDefault();
+        if (!newProjectName.trim()) { toast('Enter a project name', 'error'); return; }
+        try {
+            await api.post('/api/projects', { name: newProjectName });
+            fetchProjects();
+            setShowCreateModal(false);
+            setNewProjectName('');
+            toast(`Project "${newProjectName}" created!`);
+        } catch (err) { toast('Failed to create project', 'error'); }
     };
 
     const handleEditProject = async (e) => {
@@ -300,7 +308,7 @@ export default function Dashboard() {
 
     const handleDuplicateProject = async (project) => {
         try {
-            await api.post('/api/projects', { name: `${project.name} (copy)` }); // <-- FIXED!
+            await api.post('/api/projects', { name: `${project.name} (copy)` });
             fetchProjects();
             toast(`Duplicated "${project.name}"`);
         } catch (err) { toast('Failed to duplicate', 'error'); }
@@ -610,7 +618,7 @@ export default function Dashboard() {
             {showEditModal && editProject && (
                 <div style={S.overlay} onClick={e => { if (e.target === e.currentTarget) setShowEditModal(false); }}>
                     <div className="dropdown-pop" style={S.modal}>
-                        <h2 style={{ marginTop: 0, color: 'var(--text-main)', fontWeight: 900, marginBottom: 24, fontSize: '1.6rem', letterSpacing: '-0.5px' }}>Rename Project</h2>
+                        <h2 style={{ margin: '0 0 24px 0', color: 'var(--text-main)', fontWeight: 900, fontSize: '1.6rem', letterSpacing: '-0.5px' }}>Rename Project</h2>
                         <form onSubmit={handleEditProject} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                             <input autoFocus type="text" value={editProject.name} onChange={e => setEditProject({ ...editProject, name: e.target.value })} required style={S.input} onFocus={e => e.target.style.borderColor = '#3b82f6'} onBlur={e => e.target.style.borderColor = 'var(--border-color)'} />
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
