@@ -238,7 +238,7 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            // 🚀 FIRE BOTH AT ONCE: 2 requests instead of 50! Lightning fast.
+            // 🚀 FIRE BOTH AT ONCE: Just 2 requests! No more timeouts.
             const [projRes, taskRes] = await Promise.all([
                 api.get('/api/projects'),
                 api.get('/api/tasks')
