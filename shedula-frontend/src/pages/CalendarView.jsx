@@ -106,35 +106,33 @@ export default function CalendarView() {
     };
 
     // ── FETCH ALL TASKS FOR CALENDAR (FAST PROMISE.ALL METHOD) ──
+    // ── FETCH ALL TASKS FOR CALENDAR (LIGHTNING FAST) ──
     const fetchAllTasks = async () => {
         setIsLoading(true);
         try {
-            // FIX: Get ALL projects, no workspace blindfold
-            const projRes = await api.get('/api/projects');
+            // 🚀 FIRE BOTH AT ONCE: No more loop of death!
+            const [projRes, taskRes] = await Promise.all([
+                api.get('/api/projects'),
+                api.get('/api/tasks')
+            ]);
+
             const projects = projRes.data;
-
-            const taskPromises = projects.map(project =>
-                api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => res.data.map(task => ({
-                        ...task,
-                        projectName: project.name
-                    })))
-                    .catch(() => [])
-            );
-
-            const allTasksArrays = await Promise.all(taskPromises);
-            const allTasks = allTasksArrays.flat();
+            const allTasks = taskRes.data;
 
             const formattedEvents = allTasks
                 .filter(task => task.dueDate) // Only map tasks that have a deadline
                 .map(task => {
-                    const shortProjectName = task.projectName.length > 15 ? task.projectName.substring(0, 15) + '...' : task.projectName;
+                    // Match the project to get its exact name
+                    const parentProject = projects.find(p => p.id === (task.project?.id || task.projectId));
+                    const fullProjectName = parentProject ? parentProject.name : 'Unknown Workspace';
+                    const shortProjectName = fullProjectName.length > 15 ? fullProjectName.substring(0, 15) + '...' : fullProjectName;
+
                     const cleanTaskName = task.title.replace('✨ AI: ', '').replace('✨ ', '').trim();
 
                     return {
                         id: task.id,
                         title: `${shortProjectName}: ${cleanTaskName}`,
-                        fullProjectName: task.projectName,
+                        fullProjectName: fullProjectName,
                         taskName: cleanTaskName,
                         start: new Date(task.dueDate),
                         end: new Date(task.dueDate),

@@ -111,21 +111,24 @@ export default function Reports() {
     const fetchAnalyticsData = async () => {
         setIsLoading(true);
         try {
-            // FIX: Get ALL projects, no workspace blindfold
-            const projectRes = await api.get('/api/projects');
-            const fetchedProjects = projectRes.data;
-            setProjects(fetchedProjects);
+            // 🚀 LIGHTNING FAST 2-REQUEST FETCH
+            const [projRes, taskRes] = await Promise.all([
+                api.get('/api/projects'),
+                api.get('/api/tasks')
+            ]);
 
-            let tasksCollection = [];
-            for (const project of fetchedProjects) {
-                try {
-                    const taskRes = await api.get(`/api/tasks/project/${project.id}`);
-                    const tasksWithProject = taskRes.data.map(t => ({ ...t, projectName: project.name, projectId: project.id }));
-                    tasksCollection = [...tasksCollection, ...tasksWithProject];
-                } catch (err) {
-                    console.warn(`Could not fetch tasks for project ${project.id}`);
-                }
-            }
+            const projectsData = projRes.data;
+            setProjects(projectsData);
+
+            const tasksCollection = taskRes.data.map(task => {
+                const parentProject = projectsData.find(p => p.id === (task.project?.id || task.projectId));
+                return {
+                    ...task,
+                    projectId: parentProject ? parentProject.id : null,
+                    projectName: parentProject ? parentProject.name : 'Unknown Workspace'
+                };
+            });
+
             setAllTasks(tasksCollection);
         } catch (err) {
             toast('Failed to load analytics data', 'error');

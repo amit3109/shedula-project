@@ -258,11 +258,14 @@ export default function ProjectBoard() {
 
     const fetchProjectDetails = async () => {
         try {
-            const response = await api.get(`/api/projects/workspace/1`);
+            // 🚀 FIXED: No more /workspace/1 dead link! Fetch all and match locally.
+            const response = await api.get(`/api/projects`);
             setAllProjects(response.data);
             const targetProject = response.data.find(p => p.id.toString() === projectId.toString());
             setProjectName(targetProject ? targetProject.name : `Project #${projectId}`);
-        } catch (err) { setProjectName(`Project #${projectId}`); }
+        } catch (err) {
+            setProjectName(`Project #${projectId}`);
+        }
     };
 
     useEffect(() => {
