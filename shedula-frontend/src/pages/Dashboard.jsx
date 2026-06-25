@@ -238,24 +238,24 @@ export default function Dashboard() {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            // FIX: Get ALL projects, no workspace blindfold
-            const projRes = await api.get('/api/projects');
+            // 🚀 FIRE BOTH AT ONCE: 2 requests instead of 50! Lightning fast.
+            const [projRes, taskRes] = await Promise.all([
+                api.get('/api/projects'),
+                api.get('/api/tasks')
+            ]);
+
             const projectsData = projRes.data;
             setProjects(projectsData);
 
-            // Fetch tasks for every project and attach the IDs
-            const taskPromises = projectsData.map(project =>
-                api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => res.data.map(task => ({
-                        ...task,
-                        projectId: project.id,
-                        projectName: project.name
-                    })))
-                    .catch(() => [])
-            );
-
-            const allTasksArrays = await Promise.all(taskPromises);
-            const tasksCollection = allTasksArrays.flat();
+            // Match tasks to their projects locally
+            const tasksCollection = taskRes.data.map(task => {
+                const parentProject = projectsData.find(p => p.id === (task.project?.id || task.projectId));
+                return {
+                    ...task,
+                    projectId: parentProject ? parentProject.id : null,
+                    projectName: parentProject ? parentProject.name : 'Unknown Workspace'
+                };
+            });
 
             const totalPending = tasksCollection.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
 

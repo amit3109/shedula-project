@@ -107,12 +107,30 @@ export default function Inbox() {
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            const taskRes = await api.get('/api/tasks');
+            // Fetch both to map names correctly
+            const [projRes, taskRes] = await Promise.all([
+                api.get('/api/projects'),
+                api.get('/api/tasks')
+            ]);
 
-            // FIX: Removed strict name matching. Shows all active tasks!
+            const projectsData = projRes.data;
+            const safeUserName = (userProfile.name || '').trim().toLowerCase();
+
             const myActiveTasks = taskRes.data
                 .filter(t => t.status !== 'DONE')
-                .map(t => ({ ...t, projectName: t.project ? t.project.name : 'Unknown' }));
+                // 🚀 RESTORED FILTER: Only show tasks explicitly assigned to YOU!
+                .filter(t => {
+                    const assigned = (t.assignedTo || '').trim().toLowerCase();
+                    return assigned === safeUserName;
+                })
+                .map(t => {
+                    // Fix the "Unknown" bug by finding the actual project name
+                    const parentProj = projectsData.find(p => p.id === (t.project?.id || t.projectId));
+                    return {
+                        ...t,
+                        projectName: parentProj ? parentProj.name : 'Unknown Workspace'
+                    };
+                });
 
             myActiveTasks.sort((a, b) => {
                 const priorityWeight = { 'Urgent': 3, 'High': 2, 'Medium': 1, 'Low': 0 };
