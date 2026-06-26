@@ -256,15 +256,38 @@ export default function ProjectBoard() {
         catch (err) { console.error("Error fetching users"); }
     };
 
-    const fetchProjectDetails = async () => {
+    const fetchProjects = async () => {
+        setLoading(true);
         try {
-            // 🚀 FIXED: No more /workspace/1 dead link! Fetch all and match locally.
-            const response = await api.get(`/api/projects`);
-            setAllProjects(response.data);
-            const targetProject = response.data.find(p => p.id.toString() === projectId.toString());
-            setProjectName(targetProject ? targetProject.name : `Project #${projectId}`);
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects');
+            const projectsData = projRes.data;
+            setProjects(projectsData);
+
+            // 2. 🚀 RESTORED: Fetch tasks per project so we forcefully attach the correct ID!
+            const taskPromises = projectsData.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id, // FORCE the connection
+                        projectName: project.name // FORCE the name
+                    })))
+                    .catch(() => [])
+            );
+
+            const allTasksArrays = await Promise.all(taskPromises);
+            const tasksCollection = allTasksArrays.flat();
+
+            const totalPending = tasksCollection.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
+
+            setPendingTaskCount(totalPending);
+            setAllTasks(tasksCollection);
+            setRecentActivity([...tasksCollection].sort((a, b) => b.id - a.id).slice(0, 30));
+
         } catch (err) {
-            setProjectName(`Project #${projectId}`);
+            toast('Failed to load dashboard data', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
