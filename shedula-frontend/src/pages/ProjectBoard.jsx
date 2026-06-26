@@ -256,46 +256,30 @@ export default function ProjectBoard() {
         catch (err) { console.error("Error fetching users"); }
     };
 
-    const fetchProjects = async () => {
-        setLoading(true);
+    const fetchProjectDetails = async () => {
         try {
-            // 1. Get all projects
-            const projRes = await api.get('/api/projects');
-            const projectsData = projRes.data;
-            setProjects(projectsData);
-
-            // 2. 🚀 RESTORED: Fetch tasks per project so we forcefully attach the correct ID!
-            const taskPromises = projectsData.map(project =>
-                api.get(`/api/tasks/project/${project.id}`)
-                    .then(res => res.data.map(task => ({
-                        ...task,
-                        projectId: project.id, // FORCE the connection
-                        projectName: project.name // FORCE the name
-                    })))
-                    .catch(() => [])
-            );
-
-            const allTasksArrays = await Promise.all(taskPromises);
-            const tasksCollection = allTasksArrays.flat();
-
-            const totalPending = tasksCollection.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
-
-            setPendingTaskCount(totalPending);
-            setAllTasks(tasksCollection);
-            setRecentActivity([...tasksCollection].sort((a, b) => b.id - a.id).slice(0, 30));
-
+            // 🚀 FIXED: No more /workspace/1 dead link! Fetch all and match locally.
+            const response = await api.get(`/api/projects`);
+            setAllProjects(response.data);
+            const targetProject = response.data.find(p => p.id.toString() === projectId.toString());
+            setProjectName(targetProject ? targetProject.name : `Project #${projectId}`);
         } catch (err) {
-            toast('Failed to load dashboard data', 'error');
-        } finally {
-            setLoading(false);
+            setProjectName(`Project #${projectId}`);
         }
     };
 
     useEffect(() => {
         const loadBoard = async () => {
             setIsLoading(true);
-            await Promise.all([fetchTasks(), fetchUsers(), fetchProjectDetails()]);
-            setTimeout(() => setIsLoading(false), 500);
+            try {
+                // 🚀 FIXED: Added safety net so the loading spinner ALWAYS stops!
+                await Promise.all([fetchTasks(), fetchUsers(), fetchProjectDetails()]);
+            } catch (error) {
+                console.error("Failed to load board data", error);
+                toast("Server is warming up. Data loading...", "info");
+            } finally {
+                setTimeout(() => setIsLoading(false), 500);
+            }
         };
         loadBoard();
     }, [projectId]);
