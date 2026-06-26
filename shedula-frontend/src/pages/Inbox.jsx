@@ -104,32 +104,36 @@ export default function Inbox() {
     };
 
     // ── FETCH INBOX TASKS ──
+    // ── FETCH INBOX TASKS (FAST & ACCURATE METHOD) ──
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            // Fetch both to map names correctly
-            const [projRes, taskRes] = await Promise.all([
-                api.get('/api/projects'),
-                api.get('/api/tasks')
-            ]);
-
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects');
             const projectsData = projRes.data;
             const safeUserName = (userProfile.name || '').trim().toLowerCase();
 
-            const myActiveTasks = taskRes.data
+            // 2. Fetch tasks per project to force the ID and Name connection
+            const taskPromises = projectsData.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
+            );
+
+            // Wait for all to finish, then combine into one list
+            const allTasksArrays = await Promise.all(taskPromises);
+            const allTasks = allTasksArrays.flat();
+
+            const myActiveTasks = allTasks
                 .filter(t => t.status !== 'DONE')
                 // 🚀 RESTORED FILTER: Only show tasks explicitly assigned to YOU!
                 .filter(t => {
                     const assigned = (t.assignedTo || '').trim().toLowerCase();
                     return assigned === safeUserName;
-                })
-                .map(t => {
-                    // Fix the "Unknown" bug by finding the actual project name
-                    const parentProj = projectsData.find(p => p.id === (t.project?.id || t.projectId));
-                    return {
-                        ...t,
-                        projectName: parentProj ? parentProj.name : 'Unknown Workspace'
-                    };
                 });
 
             myActiveTasks.sort((a, b) => {

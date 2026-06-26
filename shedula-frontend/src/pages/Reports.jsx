@@ -108,26 +108,29 @@ export default function Reports() {
 
     // ── Fetch Real Data ──
     // ── FETCH REAL DATA FOR REPORTS (FAST PROMISE.ALL METHOD) ──
+    // ── FETCH REAL DATA FOR REPORTS (FAST & ACCURATE METHOD) ──
     const fetchAnalyticsData = async () => {
         setIsLoading(true);
         try {
-            // 🚀 LIGHTNING FAST 2-REQUEST FETCH
-            const [projRes, taskRes] = await Promise.all([
-                api.get('/api/projects'),
-                api.get('/api/tasks')
-            ]);
-
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects');
             const projectsData = projRes.data;
             setProjects(projectsData);
 
-            const tasksCollection = taskRes.data.map(task => {
-                const parentProject = projectsData.find(p => p.id === (task.project?.id || task.projectId));
-                return {
-                    ...task,
-                    projectId: parentProject ? parentProject.id : null,
-                    projectName: parentProject ? parentProject.name : 'Unknown Workspace'
-                };
-            });
+            // 2. Fetch tasks per project to force the ID and Name connection
+            const taskPromises = projectsData.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
+            );
+
+            // Wait for all to finish, then combine into one list
+            const allTasksArrays = await Promise.all(taskPromises);
+            const tasksCollection = allTasksArrays.flat();
 
             setAllTasks(tasksCollection);
         } catch (err) {
@@ -136,6 +139,8 @@ export default function Reports() {
             setTimeout(() => setIsLoading(false), 600);
         }
     };
+
+    
     useEffect(() => {
         if (isAuthenticated) fetchAnalyticsData();
     }, [isAuthenticated]);

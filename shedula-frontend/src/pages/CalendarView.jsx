@@ -107,27 +107,37 @@ export default function CalendarView() {
 
     // ── FETCH ALL TASKS FOR CALENDAR (FAST PROMISE.ALL METHOD) ──
     // ── FETCH ALL TASKS FOR CALENDAR (LIGHTNING FAST) ──
+    // ── FETCH ALL TASKS FOR CALENDAR (FAST & ACCURATE METHOD) ──
     const fetchAllTasks = async () => {
         setIsLoading(true);
         try {
-            // 🚀 FIRE BOTH AT ONCE: No more loop of death!
-            const [projRes, taskRes] = await Promise.all([
-                api.get('/api/projects'),
-                api.get('/api/tasks')
-            ]);
+            // 1. Get all projects
+            const projRes = await api.get('/api/projects');
+            const projectsData = projRes.data;
 
-            const projects = projRes.data;
-            const allTasks = taskRes.data;
+            // 2. Fetch tasks per project to force the ID and Name connection
+            const taskPromises = projectsData.map(project =>
+                api.get(`/api/tasks/project/${project.id}`)
+                    .then(res => res.data.map(task => ({
+                        ...task,
+                        projectId: project.id,
+                        projectName: project.name
+                    })))
+                    .catch(() => [])
+            );
+
+            // Wait for all to finish, then combine into one list
+            const allTasksArrays = await Promise.all(taskPromises);
+            const allTasks = allTasksArrays.flat();
 
             const formattedEvents = allTasks
                 .filter(task => task.dueDate) // Only map tasks that have a deadline
                 .map(task => {
-                    // Match the project to get its exact name
-                    const parentProject = projects.find(p => p.id === (task.project?.id || task.projectId));
-                    const fullProjectName = parentProject ? parentProject.name : 'Unknown Workspace';
+                    const fullProjectName = task.projectName || 'Unknown Workspace';
                     const shortProjectName = fullProjectName.length > 15 ? fullProjectName.substring(0, 15) + '...' : fullProjectName;
 
-                    const cleanTaskName = task.title.replace('✨ AI: ', '').replace('✨ ', '').trim();
+                    // Fallback to prevent crash if task title is missing
+                    const cleanTaskName = (task.title || 'Untitled Task').replace('✨ AI: ', '').replace('✨ ', '').trim();
 
                     return {
                         id: task.id,
